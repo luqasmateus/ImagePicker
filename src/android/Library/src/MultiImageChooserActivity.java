@@ -33,6 +33,7 @@ package com.synconset;
 import java.net.URI;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.file.Files;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -90,6 +91,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
     public static final String HEIGHT_KEY = "HEIGHT";
     public static final String QUALITY_KEY = "QUALITY";
     public static final String OUTPUT_TYPE_KEY = "OUTPUT_TYPE";
+    public static final String USE_BITMAP_KEY = "USE_BITMAP";
 
     private ImageAdapter ia;
 
@@ -111,6 +113,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
     private int desiredHeight;
     private int quality;
     private OutputType outputType;
+    private Boolean useBitmap;
 
     private final ImageFetcher fetcher = new ImageFetcher();
 
@@ -136,6 +139,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
         quality = getIntent().getIntExtra(QUALITY_KEY, 0);
         maxImageCount = maxImages;
         outputType = OutputType.fromValue(getIntent().getIntExtra(OUTPUT_TYPE_KEY, 0));
+        useBitmap = getIntent().getBooleanExtra(USE_BITMAP_KEY, false);
 
         Display display = getWindowManager().getDefaultDisplay();
         int width = display.getWidth();
@@ -320,7 +324,11 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
             finish();
         } else {
             setRequestedOrientation(getResources().getConfiguration().orientation); //prevent orientation changes during processing
-            new ResizeImagesTask().execute(fileNames.entrySet());
+            if (useBitmap) {
+                new ResizeImagesBitmapTask().execute(fileNames.entrySet());
+            } else {
+                new ResizeImagesByteArrayTask().execute(fileNames.entrySet());
+            }
         }
     }
 
@@ -505,7 +513,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
         }
     }
 
-    private class ResizeImagesTask extends AsyncTask<Set<Entry<String, Integer>>, Void, ArrayList<String>> {
+    private class ResizeImagesBitmapTask extends AsyncTask<Set<Entry<String, Integer>>, Void, ArrayList<String>> {
         private Exception asyncTaskError = null;
 
         @Override
@@ -691,6 +699,93 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             bm.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream);
             byte[] byteArray = byteArrayOutputStream.toByteArray();
+            return Base64.encodeToString(byteArray, Base64.NO_WRAP);
+        }
+    }
+
+    private class ResizeImagesByteArrayTask extends AsyncTask<Set<Entry<String, Integer>>, Void, ArrayList<String>> {
+        private Exception asyncTaskError = null;
+
+        @Override
+        protected ArrayList<String> doInBackground(Set<Entry<String, Integer>>... fileSets) {
+            Set<Entry<String, Integer>> fileNames = fileSets[0];
+            ArrayList<String> al = new ArrayList<String>();
+            try {
+                Iterator<Entry<String, Integer>> i = fileNames.iterator();
+                while (i.hasNext()) {
+                    Entry<String, Integer> imageInfo = i.next();
+                    File file = new File(imageInfo.getKey());
+                    
+                    if (outputType == OutputType.FILE_URI) {
+                        al.add(Uri.fromFile(file).toString());
+                    } else if (outputType == OutputType.BASE64_STRING) {
+                        try {
+                            byte[] byteArray = this.tryToGetByteArray(file);
+                            al.add(getBase64OfImage(byteArray));
+                        } catch(OutOfMemoryError e) {
+                            throw new IOException("Unable to load image into memory.");
+                        }
+                    }
+                }
+                return al;
+            } catch (IOException e) {
+                try {
+                    asyncTaskError = e;
+                } catch (Exception ignore) {}
+
+                return new ArrayList<String>();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<String> al) {
+            Intent data = new Intent();
+
+            if (asyncTaskError != null) {
+                Bundle res = new Bundle();
+                res.putString("ERRORMESSAGE", asyncTaskError.getMessage());
+                data.putExtras(res);
+                setResult(RESULT_CANCELED, data);
+
+            } else if (al.size() > 0) {
+                Bundle res = new Bundle();
+                res.putStringArrayList("MULTIPLEFILENAMES", al);
+
+                if (imagecursor != null) {
+                    res.putInt("TOTALFILES", imagecursor.getCount());
+                }
+
+                int sync = ResultIPC.get().setLargeData(res);
+                data.putExtra("bigdata:synccode", sync);
+                setResult(RESULT_OK, data);
+
+            } else {
+                setResult(RESULT_CANCELED, data);
+            }
+
+            progress.dismiss();
+            finish();
+        }
+
+        private byte[] tryToGetByteArray(File file) throws IOException {
+            byte[] byteArray = Files.readAllBytes(file.toPath());
+            return byteArray;
+        }
+
+        private File storeImage(byte[] byteArray, String fileName) throws IOException {
+            int index = fileName.lastIndexOf('.');
+            String name = fileName.substring(0, index);
+            String ext = fileName.substring(index);
+            File file = File.createTempFile("tmp_" + name, ext);
+            OutputStream outStream = new FileOutputStream(file);
+            outStream.write(byteArray);
+
+            outStream.flush();
+            outStream.close();
+            return file;
+        }
+
+        private String getBase64OfImage(byte[] byteArray) {
             return Base64.encodeToString(byteArray, Base64.NO_WRAP);
         }
     }
