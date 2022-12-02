@@ -1,21 +1,20 @@
-cordova-imagePicker
+cordova-plugin-image-picker (fork)
 ===================
 
 Cordova Plugin For Multiple Image Selection - implemented for iOS and Android 4.0 and above.
+This fork adds the option `useBitmap`. It controls whether this plugin uses an array of bytes or the Bitmap class to render the selected images on Android.
 
 ## Installing the plugin
 
-The plugin conforms to the Cordova plugin specification, it can be installed
-using the Cordova / Phonegap command line interface.
+The plugin conforms to the Cordova plugin specification, it can be installed using the Cordova / Phonegap command line interface.
 
     # without desc
-    phonegap plugin add https://github.com/Telerik-Verified-Plugins/ImagePicker.git
-    cordova plugin add https://github.com/Telerik-Verified-Plugins/ImagePicker.git
+    phonegap plugin add https://github.com/luqasmateus/cordova-plugin-image-picker.git
+    cordova plugin add https://github.com/luqasmateus/cordova-plugin-image-picker.git
     
     # with desc
-    phonegap plugin add https://github.com/Telerik-Verified-Plugins/ImagePicker.git --variable PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
-
-    cordova plugin add https://github.com/Telerik-Verified-Plugins/ImagePicker.git --variable PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
+    phonegap plugin add https://github.com/luqasmateus/cordova-plugin-image-picker.git --variable PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
+    cordova plugin add https://github.com/luqasmateus/cordova-plugin-image-picker.git --variable PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
 
 
 ## Using the plugin
@@ -73,7 +72,10 @@ window.imagePicker.getPictures(
         // available options are 
         // window.imagePicker.OutputType.FILE_URI (0) or 
         // window.imagePicker.OutputType.BASE64_STRING (1)
-        outputType: int
+        outputType: int,
+
+        // Android only. Defines if the plugin will use the Bitmap class the render the retrieved images.
+        // Defaults to false
     };
     
 ### Note for Android Use
