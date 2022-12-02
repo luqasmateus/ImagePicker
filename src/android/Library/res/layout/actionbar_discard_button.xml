@@ -27,12 +27,9 @@
         android:drawableStart="@drawable/ic_action_discard_light"
         android:drawablePadding="8dp"
         android:gravity="center_vertical"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:textSize="15dp"
         style="?android:actionBarTabTextStyle" />
 </FrameLayout>
