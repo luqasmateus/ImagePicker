@@ -2,6 +2,7 @@ cordova-plugin-image-picker (fork)
 ===================
 
 Cordova Plugin For Multiple Image Selection - implemented for iOS and Android 4.0 and above.
+
 This fork adds the option `useBitmap`. It controls whether this plugin uses an array of bytes or the Bitmap class to render the selected images on Android.
 
 ## Installing the plugin
@@ -75,7 +76,8 @@ window.imagePicker.getPictures(
         outputType: int,
 
         // Android only. Defines if the plugin will use the Bitmap class the render the retrieved images.
-        // Defaults to false
+        // If false, uses an array of bytes. Defaults to false.
+        useBitmap: boolean
     };
     
 ### Note for Android Use
